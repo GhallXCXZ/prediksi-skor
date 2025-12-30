@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Match</title>
+  <title>Admin - Tambah Match</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -16,9 +16,16 @@
   <h1 class="text-xl font-bold mb-4">Admin - Tambah Match</h1>
 
   <input
-    id="pertandingan"
+    id="home"
     type="text"
-    placeholder="Inter Milan vs Man City"
+    placeholder="Tim Home (contoh: Inter Milan)"
+    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
+  />
+
+  <input
+    id="away"
+    type="text"
+    placeholder="Tim Away (contoh: Man City)"
     class="w-full p-2 mb-4 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
   />
 
@@ -31,48 +38,42 @@
 </div>
 
 <script>
-/* ======================
-   CONFIG
-====================== */
 const API = 'https://prediksi-skor.onrender.com';
 
-/* ======================
-   BUAT MATCH (GLOBAL)
-====================== */
+/* ====== BUAT MATCH (GLOBAL) ====== */
 window.buatMatch = async function () {
-  const input = document.getElementById('pertandingan');
-  const pertandingan = input.value.trim();
+  const home = document.getElementById('home').value.trim();
+  const away = document.getElementById('away').value.trim();
 
-  if (!pertandingan) {
-    alert('Nama pertandingan wajib diisi');
+  if (!home || !away) {
+    alert('Home dan Away wajib diisi');
     return;
   }
 
   try {
-    const res = await fetch(API + '/admin/match', {
+    const res = await fetch(API + '/matches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pertandingan })
+      body: JSON.stringify({ home, away })
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data.error || 'Gagal tambah match');
+      alert(data.message || 'Gagal tambah match');
       return;
     }
 
     alert('Match berhasil ditambahkan');
-    input.value = '';
+    document.getElementById('home').value = '';
+    document.getElementById('away').value = '';
 
   } catch (err) {
     alert('Tidak bisa terhubung ke server');
   }
 };
 
-/* ======================
-   DARK MODE
-====================== */
+/* ====== DARK MODE ====== */
 const html = document.documentElement;
 const icon = document.getElementById('theme-icon');
 
