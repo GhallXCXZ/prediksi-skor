@@ -5,19 +5,26 @@
   <title>Admin Match</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
 
 <button onclick="toggleTheme()" class="fixed top-4 right-4 p-3 rounded-full bg-white dark:bg-gray-800 shadow">
   <span id="theme-icon">🌙</span>
 </button>
 
 <div class="max-w-md mx-auto mt-20 bg-white dark:bg-gray-800 p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-4">Admin Match</h1>
+  <h1 class="text-xl font-bold mb-4">Admin - Tambah Match</h1>
 
-  <input id="home" placeholder="Tim Home" class="w-full p-2 mb-2 rounded bg-gray-50 dark:bg-gray-700">
-  <input id="away" placeholder="Tim Away" class="w-full p-2 mb-2 rounded bg-gray-50 dark:bg-gray-700">
+  <input
+    id="pertandingan"
+    placeholder="Contoh: Inter Milan vs Man City"
+    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700"
+  />
 
-  <button onclick="buatMatch()" class="w-full bg-green-600 text-white p-2 rounded">
+  <button
+    onclick="buatMatch()"
+    class="w-full bg-green-600 text-white p-2 rounded"
+  >
     Tambah Match
   </button>
 </div>
@@ -26,19 +33,24 @@
 const API = 'https://prediksi-skor.onrender.com';
 
 async function buatMatch() {
-  const home = document.getElementById('home').value;
-  const away = document.getElementById('away').value;
+  const pertandingan = document.getElementById('pertandingan').value;
 
-  const res = await fetch(API + '/matches', {
+  if (!pertandingan) {
+    alert('Nama pertandingan wajib diisi');
+    return;
+  }
+
+  const res = await fetch(API + '/admin/match', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ home, away })
+    body: JSON.stringify({ pertandingan })
   });
 
   const data = await res.json();
-  alert(data.message);
+  alert('Match berhasil ditambahkan');
 }
 
+/* DARK MODE */
 const html = document.documentElement;
 const icon = document.getElementById('theme-icon');
 
@@ -65,5 +77,6 @@ function toggleTheme() {
   applyTheme(theme);
 }
 </script>
+
 </body>
 </html>
