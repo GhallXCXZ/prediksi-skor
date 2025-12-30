@@ -5,15 +5,11 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
 
 const db = new sqlite3.Database('./prediksi.db');
 
-// =======================
-// DATABASE
-// =======================
+// ================= DATABASE =================
 db.serialize(() => {
-
   db.run(`
     CREATE TABLE IF NOT EXISTS matches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,73 +22,57 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS predictions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      match_id INTEGER,
-      home_score INTEGER,
-      away_score INTEGER,
+      match_id INTEGER NOT NULL,
+      home_score INTEGER NOT NULL,
+      away_score INTEGER NOT NULL,
       UNIQUE(match_id, home_score, away_score),
       UNIQUE(match_id, name)
     )
   `);
-
 });
 
-// =======================
-// GET MATCHES
-// =======================
+// ================= MATCH =================
 app.get('/matches', (req, res) => {
-  db.all('SELECT * FROM matches ORDER BY id DESC', (err, rows) => {
-    res.json(rows);
+  db.all('SELECT * FROM matches ORDER BY id DESC', (e, rows) => {
+    res.json(rows || []);
   });
 });
 
-// =======================
-// ADMIN: CLOSE MATCH
-// =======================
-app.post('/admin/match/:id/close', (req, res) => {
-  db.run(
-    'UPDATE matches SET status = "CLOSED" WHERE id = ?',
-    [req.params.id],
-    () => res.json({ message: 'Match berhasil ditutup' })
-  );
-});
-
-// =======================
-// ADMIN: TAMBAH MATCH
-// =======================
 app.post('/admin/match', (req, res) => {
   const { pertandingan } = req.body;
-
   if (!pertandingan) {
-    return res.status(400).json({ message: 'Nama pertandingan wajib diisi' });
+    return res.status(400).json({ message: 'Nama match wajib diisi' });
   }
 
   db.run(
     'INSERT INTO matches (pertandingan) VALUES (?)',
     [pertandingan],
-    () => res.json({ message: 'Match berhasil ditambahkan' })
+    () => res.json({ message: 'Match ditambahkan' })
   );
 });
 
-// =======================
-// USER: KIRIM PREDIKSI
-// =======================
+app.post('/admin/match/:id/close', (req, res) => {
+  db.run(
+    'UPDATE matches SET status = "CLOSED" WHERE id = ?',
+    [req.params.id],
+    () => res.json({ message: 'Match ditutup' })
+  );
+});
+
+// ================= PREDICTION =================
 app.post('/predict', (req, res) => {
   const { name, matchId, homeScore, awayScore } = req.body;
+
+  if (!name || homeScore === awayScore) {
+    return res.status(400).json({ message: 'Nama wajib & skor tidak boleh seri' });
+  }
 
   db.get(
     'SELECT status FROM matches WHERE id = ?',
     [matchId],
-    (err, match) => {
-      if (match.status === 'CLOSED') {
-        return res
-          .status(400)
-          .json({ message: 'Match sudah ditutup oleh admin' });
-      }
-
-      if (!name || homeScore === awayScore) {
-        return res
-          .status(400)
-          .json({ message: 'Nama wajib & skor tidak boleh seri' });
+    (e, m) => {
+      if (!m || m.status === 'CLOSED') {
+        return res.status(400).json({ message: 'Match sudah ditutup' });
       }
 
       db.run(
@@ -102,55 +82,44 @@ app.post('/predict', (req, res) => {
         (err) => {
           if (err) {
             if (err.message.includes('match_id, name')) {
-              return res
-                .status(400)
-                .json({ message: 'Nama sudah mengisi prediksi' });
+              return res.status(400).json({ message: 'Nama sudah submit prediksi' });
             }
-            return res
-              .status(400)
-              .json({ message: 'Skor ini sudah dipilih orang lain' });
+            return res.status(400).json({ message: 'Skor sudah dipilih orang lain' });
           }
-          res.json({ message: 'Prediksi berhasil disimpan' });
+          res.json({ message: 'Prediksi berhasil' });
         }
       );
     }
   );
 });
 
-// =======================
-// ADMIN: SEMUA PREDIKSI
-// =======================
+// ================= ADMIN VIEW =================
 app.get('/admin/predictions', (req, res) => {
   db.all(`
-    SELECT 
-      p.name,
-      m.pertandingan,
-      p.home_score,
-      p.away_score
+    SELECT p.name, m.pertandingan, p.home_score, p.away_score
     FROM predictions p
     JOIN matches m ON p.match_id = m.id
     ORDER BY p.id DESC
-  `, (err, rows) => {
-    res.json(rows);
-  });
+  `, (e, rows) => res.json(rows || []));
 });
 
-// =======================
-// LEADERBOARD
-// =======================
 app.get('/leaderboard', (req, res) => {
   db.all(`
-    SELECT name, COUNT(*) as total
+    SELECT name, COUNT(*) AS total
     FROM predictions
     GROUP BY name
     ORDER BY total DESC
-  `, (err, rows) => {
-    res.json(rows);
-  });
+  `, (e, rows) => res.json(rows || []));
 });
 
-// =======================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('Server running on port ' + PORT);
+app.get('/scores/:id', (req, res) => {
+  db.all(
+    'SELECT name, home_score, away_score FROM predictions WHERE match_id = ?',
+    [req.params.id],
+    (e, rows) => res.json(rows || [])
+  );
 });
+
+// ================= START =================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Server running on', PORT));
