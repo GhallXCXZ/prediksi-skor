@@ -14,7 +14,6 @@ const db = new sqlite3.Database('./prediksi.db');
 // =======================
 db.serialize(() => {
 
-  // TABLE MATCHES (PAKAI 1 FIELD SAJA)
   db.run(`
     CREATE TABLE IF NOT EXISTS matches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +22,6 @@ db.serialize(() => {
     )
   `);
 
-  // TABLE PREDICTIONS
   db.run(`
     CREATE TABLE IF NOT EXISTS predictions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,9 +40,6 @@ db.serialize(() => {
 // =======================
 app.get('/matches', (req, res) => {
   db.all('SELECT * FROM matches ORDER BY id DESC', (err, rows) => {
-    if (err) {
-      return res.status(500).json({ message: err.message });
-    }
     res.json(rows);
   });
 });
@@ -62,12 +57,7 @@ app.post('/admin/match', (req, res) => {
   db.run(
     'INSERT INTO matches (pertandingan) VALUES (?)',
     [pertandingan],
-    (err) => {
-      if (err) {
-        return res.status(500).json({ message: err.message });
-      }
-      res.json({ message: 'Match berhasil ditambahkan' });
-    }
+    () => res.json({ message: 'Match berhasil ditambahkan' })
   );
 });
 
@@ -80,7 +70,7 @@ app.post('/predict', (req, res) => {
   if (!name || homeScore === awayScore) {
     return res
       .status(400)
-      .json({ message: 'Nama wajib diisi dan skor tidak boleh sama' });
+      .json({ message: 'Nama wajib & skor tidak boleh sama' });
   }
 
   db.run(
@@ -93,9 +83,41 @@ app.post('/predict', (req, res) => {
           .status(400)
           .json({ message: 'Skor ini sudah dipilih orang lain' });
       }
-      res.json({ message: 'Prediksi berhasil disimpan' });
+      res.json({ message: 'Prediksi tersimpan' });
     }
   );
+});
+
+// =======================
+// ADMIN: SEMUA PREDIKSI
+// =======================
+app.get('/admin/predictions', (req, res) => {
+  db.all(`
+    SELECT 
+      p.name,
+      m.pertandingan,
+      p.home_score,
+      p.away_score
+    FROM predictions p
+    JOIN matches m ON p.match_id = m.id
+    ORDER BY p.id DESC
+  `, (err, rows) => {
+    res.json(rows);
+  });
+});
+
+// =======================
+// LEADERBOARD
+// =======================
+app.get('/leaderboard', (req, res) => {
+  db.all(`
+    SELECT name, COUNT(*) AS total
+    FROM predictions
+    GROUP BY name
+    ORDER BY total DESC
+  `, (err, rows) => {
+    res.json(rows);
+  });
 });
 
 // =======================

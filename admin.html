@@ -2,63 +2,101 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Admin - Tambah Match</title>
+  <title>Admin Realtime Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-<div class="max-w-md mx-auto mt-20 bg-white dark:bg-gray-800 p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-4">Admin - Tambah Match</h1>
+<div class="max-w-6xl mx-auto mt-10 bg-white dark:bg-gray-800 p-6 rounded shadow">
+  <h1 class="text-2xl font-bold mb-4">📊 Admin Realtime Panel</h1>
 
-  <input
-    id="pertandingan"
-    placeholder="Inter Milan vs Man City"
-    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
-  />
+  <!-- Tambah Match -->
+  <div class="mb-6">
+    <input id="pertandingan" placeholder="Inter vs Man City"
+      class="p-2 border rounded w-2/3">
+    <button onclick="buatMatch()"
+      class="bg-green-600 text-white px-4 py-2 rounded ml-2">
+      Tambah Match
+    </button>
+  </div>
 
-  <button
-    onclick="buatMatch()"
-    class="w-full bg-green-600 text-white p-2 rounded"
-  >
-    Tambah Match
-  </button>
+  <!-- Tabel Prediksi -->
+  <h2 class="font-semibold mb-2">👀 Semua Prediksi (Realtime)</h2>
+  <table class="w-full border mb-6">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="border p-2">Nama</th>
+        <th class="border p-2">Match</th>
+        <th class="border p-2">Skor</th>
+      </tr>
+    </thead>
+    <tbody id="predictions"></tbody>
+  </table>
+
+  <!-- Leaderboard -->
+  <h2 class="font-semibold mb-2">🏆 Leaderboard (Realtime)</h2>
+  <ol id="leaderboard" class="list-decimal ml-6"></ol>
 </div>
 
 <script>
 const API = 'https://prediksi-skor.onrender.com';
 
-window.buatMatch = async function () {
-  const pertandingan = document.getElementById('pertandingan').value.trim();
+// Tambah Match
+async function buatMatch() {
+  const pertandingan = document.getElementById('pertandingan').value;
+  if (!pertandingan) return alert('Isi nama pertandingan');
 
-  if (!pertandingan) {
-    alert('Nama pertandingan wajib diisi');
-    return;
-  }
+  const res = await fetch(API + '/admin/match', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pertandingan })
+  });
 
-  try {
-    const res = await fetch(API + '/admin/match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pertandingan })
-    });
+  const data = await res.json();
+  alert(data.message);
+  document.getElementById('pertandingan').value = '';
+}
 
-    const text = await res.text();
-    console.log(text);
+// Load Prediksi
+async function loadPredictions() {
+  const res = await fetch(API + '/admin/predictions');
+  const data = await res.json();
+  const tbody = document.getElementById('predictions');
+  tbody.innerHTML = '';
 
-    if (!res.ok) {
-      alert('SERVER ERROR: ' + text);
-      return;
-    }
+  data.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="border p-2">${p.name}</td>
+        <td class="border p-2">${p.pertandingan}</td>
+        <td class="border p-2">${p.home_score} - ${p.away_score}</td>
+      </tr>
+    `;
+  });
+}
 
-    alert('Match berhasil ditambahkan');
-    document.getElementById('pertandingan').value = '';
+// Load Leaderboard
+async function loadLeaderboard() {
+  const res = await fetch(API + '/leaderboard');
+  const data = await res.json();
+  const ol = document.getElementById('leaderboard');
+  ol.innerHTML = '';
 
-  } catch (err) {
-    alert('BENAR-BENAR TIDAK NYAMPAI KE SERVER');
-    console.error(err);
-  }
-};
+  data.forEach(l => {
+    ol.innerHTML += `<li>${l.name} (${l.total} prediksi)</li>`;
+  });
+}
+
+// AUTO REFRESH REALTIME
+function refreshRealtime() {
+  loadPredictions();
+  loadLeaderboard();
+}
+
+// Refresh tiap 3 detik
+setInterval(refreshRealtime, 3000);
+refreshRealtime();
 </script>
 
 </body>
