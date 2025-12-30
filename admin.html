@@ -6,32 +6,20 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-<button onclick="toggleTheme()" class="fixed top-4 right-4 p-3 rounded-full bg-white dark:bg-gray-800 shadow">
-  <span id="theme-icon">🌙</span>
-</button>
-
-<div class="max-w-md mx-auto mt-24 bg-white dark:bg-gray-800 p-6 rounded shadow-lg">
+<div class="max-w-md mx-auto mt-20 bg-white dark:bg-gray-800 p-6 rounded shadow">
   <h1 class="text-xl font-bold mb-4">Admin - Tambah Match</h1>
 
   <input
-    id="home"
-    type="text"
-    placeholder="Tim Home (contoh: Inter Milan)"
-    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
-  />
-
-  <input
-    id="away"
-    type="text"
-    placeholder="Tim Away (contoh: Man City)"
-    class="w-full p-2 mb-4 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
+    id="pertandingan"
+    placeholder="Inter Milan vs Man City"
+    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white"
   />
 
   <button
     onclick="buatMatch()"
-    class="w-full bg-green-600 hover:bg-green-700 text-white p-2 rounded transition"
+    class="w-full bg-green-600 text-white p-2 rounded"
   >
     Tambah Match
   </button>
@@ -40,65 +28,37 @@
 <script>
 const API = 'https://prediksi-skor.onrender.com';
 
-/* ====== BUAT MATCH (GLOBAL) ====== */
 window.buatMatch = async function () {
-  const home = document.getElementById('home').value.trim();
-  const away = document.getElementById('away').value.trim();
+  const pertandingan = document.getElementById('pertandingan').value.trim();
 
-  if (!home || !away) {
-    alert('Home dan Away wajib diisi');
+  if (!pertandingan) {
+    alert('Nama pertandingan wajib diisi');
     return;
   }
 
   try {
-    const res = await fetch(API + '/matches', {
+    const res = await fetch(API + '/admin/match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ home, away })
+      body: JSON.stringify({ pertandingan })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    console.log(text);
 
     if (!res.ok) {
-      alert(data.message || 'Gagal tambah match');
+      alert('SERVER ERROR: ' + text);
       return;
     }
 
     alert('Match berhasil ditambahkan');
-    document.getElementById('home').value = '';
-    document.getElementById('away').value = '';
+    document.getElementById('pertandingan').value = '';
 
   } catch (err) {
-    alert('Tidak bisa terhubung ke server');
+    alert('BENAR-BENAR TIDAK NYAMPAI KE SERVER');
+    console.error(err);
   }
 };
-
-/* ====== DARK MODE ====== */
-const html = document.documentElement;
-const icon = document.getElementById('theme-icon');
-
-function applyTheme(theme) {
-  if (theme === 'dark') {
-    html.classList.add('dark');
-    icon.textContent = '☀️';
-  } else {
-    html.classList.remove('dark');
-    icon.textContent = '🌙';
-  }
-}
-
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme) {
-  applyTheme(savedTheme);
-} else {
-  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-}
-
-function toggleTheme() {
-  const theme = html.classList.contains('dark') ? 'light' : 'dark';
-  localStorage.setItem('theme', theme);
-  applyTheme(theme);
-}
 </script>
 
 </body>
