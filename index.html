@@ -6,23 +6,28 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-<div class="max-w-xl mx-auto mt-10 bg-white p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-3">Prediksi Skor</h1>
+<div class="max-w-xl mx-auto mt-16 bg-white dark:bg-gray-800 p-6 rounded shadow">
+  <h1 class="text-xl font-bold mb-4">Prediksi Skor</h1>
 
-  <input id="name" placeholder="Nama kamu" class="w-full p-2 mb-2 border rounded">
+  <input id="name" placeholder="Nama kamu"
+    class="w-full p-2 mb-2 border rounded">
 
-  <select id="match" onchange="loadTaken()" class="w-full p-2 mb-2 border rounded"></select>
+  <select id="match" onchange="loadScores()"
+    class="w-full p-2 mb-2 border rounded"></select>
 
-  <div id="taken" class="text-sm mb-2"></div>
+  <div id="taken" class="text-sm mb-3"></div>
 
-  <div class="flex gap-2 mb-2">
-    <input id="homeScore" type="number" placeholder="Home" class="w-1/2 p-2 border rounded">
-    <input id="awayScore" type="number" placeholder="Away" class="w-1/2 p-2 border rounded">
+  <div class="flex gap-2 mb-3">
+    <input id="homeScore" type="number" placeholder="Skor Home"
+      class="w-1/2 p-2 border rounded">
+    <input id="awayScore" type="number" placeholder="Skor Away"
+      class="w-1/2 p-2 border rounded">
   </div>
 
-  <button onclick="submit()" class="w-full bg-blue-600 text-white p-2 rounded">
+  <button onclick="submitPrediction()"
+    class="w-full bg-blue-600 text-white p-2 rounded">
     Kirim Prediksi
   </button>
 </div>
@@ -31,39 +36,48 @@
 const API = 'https://prediksi-skor.onrender.com';
 
 async function loadMatches() {
-  const r = await fetch(API + '/matches');
-  const d = await r.json();
-  const s = document.getElementById('match');
-  s.innerHTML = '';
-  d.forEach(m => s.innerHTML += `<option value="${m.id}">${m.pertandingan} (${m.status})</option>`);
-  loadTaken();
+  const res = await fetch(API + '/matches');
+  const data = await res.json();
+  const select = document.getElementById('match');
+  select.innerHTML = '';
+  data.forEach(m => {
+    select.innerHTML += `<option value="${m.id}">${m.pertandingan}</option>`;
+  });
+  loadScores();
 }
 
-async function loadTaken() {
-  const id = match.value;
-  const r = await fetch(API + '/scores/' + id);
-  const d = await r.json();
-  taken.innerHTML = '<b>Skor dipilih:</b><br>' +
-    (d.length ? d.map(x => `${x.name} : ${x.home_score}-${x.away_score}`).join('<br>') : '-');
+async function loadScores() {
+  const matchId = document.getElementById('match').value;
+  const res = await fetch(API + '/scores/' + matchId);
+  const data = await res.json();
+  const box = document.getElementById('taken');
+  box.innerHTML = '<b>Skor sudah diambil:</b><br>' +
+    (data.length
+      ? data.map(d => `• ${d.name} : ${d.home_score} - ${d.away_score}`).join('<br>')
+      : 'Belum ada');
 }
 
-async function submit() {
+async function submitPrediction() {
+  const payload = {
+    name: document.getElementById('name').value,
+    matchId: document.getElementById('match').value,
+    homeScore: Number(document.getElementById('homeScore').value),
+    awayScore: Number(document.getElementById('awayScore').value)
+  };
+
   const res = await fetch(API + '/predict', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: name.value,
-      matchId: match.value,
-      homeScore: Number(homeScore.value),
-      awayScore: Number(awayScore.value)
-    })
+    body: JSON.stringify(payload)
   });
-  const d = await res.json();
-  alert(d.message);
-  loadTaken();
+
+  const data = await res.json();
+  alert(data.message);
+  loadScores();
 }
 
 loadMatches();
 </script>
+
 </body>
 </html>

@@ -2,75 +2,102 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Admin</title>
+  <title>Admin Realtime Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-<div class="max-w-6xl mx-auto mt-10 bg-white p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-3">Admin Panel</h1>
+<div class="max-w-6xl mx-auto mt-10 bg-white dark:bg-gray-800 p-6 rounded shadow">
+  <h1 class="text-2xl font-bold mb-4">📊 Admin Realtime Panel</h1>
 
-  <input id="pertandingan" placeholder="Nama match" class="p-2 border rounded">
-  <button onclick="add()" class="bg-green-600 text-white px-3 py-2 rounded ml-2">Tambah</button>
+  <!-- Tambah Match -->
+  <div class="mb-6">
+    <input id="pertandingan" placeholder="Inter vs Man City"
+      class="p-2 border rounded w-2/3">
+    <button onclick="buatMatch()"
+      class="bg-green-600 text-white px-4 py-2 rounded ml-2">
+      Tambah Match
+    </button>
+  </div>
 
-  <ul id="matches" class="my-4"></ul>
-
-  <h2 class="font-semibold">Prediksi</h2>
-  <table class="w-full border mt-2">
-    <thead>
-      <tr><th>Nama</th><th>Match</th><th>Skor</th></tr>
+  <!-- Tabel Prediksi -->
+  <h2 class="font-semibold mb-2">👀 Semua Prediksi (Realtime)</h2>
+  <table class="w-full border mb-6">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="border p-2">Nama</th>
+        <th class="border p-2">Match</th>
+        <th class="border p-2">Skor</th>
+      </tr>
     </thead>
     <tbody id="predictions"></tbody>
   </table>
 
-  <h2 class="font-semibold mt-4">Leaderboard</h2>
-  <ol id="leaderboard"></ol>
+  <!-- Leaderboard -->
+  <h2 class="font-semibold mb-2">🏆 Leaderboard (Realtime)</h2>
+  <ol id="leaderboard" class="list-decimal ml-6"></ol>
 </div>
 
 <script>
 const API = 'https://prediksi-skor.onrender.com';
 
-async function add() {
-  const r = await fetch(API + '/admin/match', {
+// Tambah Match
+async function buatMatch() {
+  const pertandingan = document.getElementById('pertandingan').value;
+  if (!pertandingan) return alert('Isi nama pertandingan');
+
+  const res = await fetch(API + '/admin/match', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ pertandingan: pertandingan.value })
-  });
-  alert((await r.json()).message);
-  pertandingan.value='';
-  load();
-}
-
-async function closeMatch(id) {
-  await fetch(API + '/admin/match/' + id + '/close', { method:'POST' });
-  load();
-}
-
-async function load() {
-  const m = await (await fetch(API + '/matches')).json();
-  matches.innerHTML='';
-  m.forEach(x=>{
-    matches.innerHTML+=`
-      <li>
-        ${x.pertandingan} (${x.status})
-        ${x.status==='OPEN'?`<button onclick="closeMatch(${x.id})">[Tutup]</button>`:''}
-      </li>`;
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pertandingan })
   });
 
-  const p = await (await fetch(API + '/admin/predictions')).json();
-  predictions.innerHTML='';
-  p.forEach(x=>{
-    predictions.innerHTML+=`<tr><td>${x.name}</td><td>${x.pertandingan}</td><td>${x.home_score}-${x.away_score}</td></tr>`;
-  });
-
-  const l = await (await fetch(API + '/leaderboard')).json();
-  leaderboard.innerHTML='';
-  l.forEach(x=> leaderboard.innerHTML+=`<li>${x.name} (${x.total})</li>`);
+  const data = await res.json();
+  alert(data.message);
+  document.getElementById('pertandingan').value = '';
 }
 
-setInterval(load,3000);
-load();
+// Load Prediksi
+async function loadPredictions() {
+  const res = await fetch(API + '/admin/predictions');
+  const data = await res.json();
+  const tbody = document.getElementById('predictions');
+  tbody.innerHTML = '';
+
+  data.forEach(p => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="border p-2">${p.name}</td>
+        <td class="border p-2">${p.pertandingan}</td>
+        <td class="border p-2">${p.home_score} - ${p.away_score}</td>
+      </tr>
+    `;
+  });
+}
+
+// Load Leaderboard
+async function loadLeaderboard() {
+  const res = await fetch(API + '/leaderboard');
+  const data = await res.json();
+  const ol = document.getElementById('leaderboard');
+  ol.innerHTML = '';
+
+  data.forEach(l => {
+    ol.innerHTML += `<li>${l.name} (${l.total} prediksi)</li>`;
+  });
+}
+
+// AUTO REFRESH REALTIME
+function refreshRealtime() {
+  loadPredictions();
+  loadLeaderboard();
+}
+
+// Refresh tiap 3 detik
+setInterval(refreshRealtime, 3000);
+refreshRealtime();
 </script>
+
 </body>
 </html>
