@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - Prediksi Skor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">⚙️ Admin Panel</h1>
+
+    <!-- FORM TAMBAH MATCH -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+      <h2 class="text-xl font-semibold mb-2">➕ Buat Pertandingan</h2>
+
+      <input
+        id="pertandinganInput"
+        class="border p-2 w-full mb-2"
+        placeholder="Inter Milan vs Barcelona"
+      />
+
+      <button
+        onclick="buatMatch()"
+        class="bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        Buat Match
+      </button>
+    </div>
+
+    <!-- LIST MATCH -->
+    <div class="bg-white p-4 rounded shadow">
+      <h2 class="text-xl font-semibold mb-4">📋 Daftar Pertandingan</h2>
+      <div id="matchList" class="space-y-4"></div>
+    </div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  const API = 'http://localhost:3000';
+
+  async function loadMatches() {
+    const res = await fetch(API + '/matches');
+    const data = await res.json();
+    const list = document.getElementById('matchList');
+    list.innerHTML = '';
+
+    data.forEach(m => {
+      list.innerHTML += `
+        <div class="border p-3 rounded">
+          <p class="font-bold">${m.pertandingan}</p>
+          <p>Status: <b>${m.status}</b></p>
+        </div>
+      `;
+    });
+  }
+
+  // JADIKAN GLOBAL
+  window.buatMatch = async function () {
+    const input = document.getElementById('pertandinganInput');
+
+    if (!input) {
+      alert('Input pertandingan tidak ditemukan');
+      return;
+    }
+
+    const pertandingan = input.value.trim();
+    if (!pertandingan) {
+      alert('Isi nama pertandingan');
+      return;
+    }
+
+    await fetch(API + '/admin/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pertandingan })
+    });
+
+    input.value = '';
+    loadMatches();
+  }
+
+  loadMatches();
+
+});
+</script>
+
+</body>
+</html>
