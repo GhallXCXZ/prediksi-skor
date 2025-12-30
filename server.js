@@ -1,6 +1,6 @@
 const express = require('express');
-const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors');
 
 const app = express();
 app.use(cors());
@@ -9,115 +9,72 @@ app.use(express.static(__dirname));
 
 const db = new sqlite3.Database('./prediksi.db');
 
-// =====================
-// BUAT TABLE DATABASE
-// =====================
 db.serialize(() => {
-
-  // TABLE MATCHES
   db.run(`
     CREATE TABLE IF NOT EXISTS matches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      pertandingan TEXT NOT NULL,
-      status TEXT DEFAULT 'OPEN'
+      home TEXT,
+      away TEXT
     )
   `);
 
-  // TABLE PREDICTIONS
   db.run(`
     CREATE TABLE IF NOT EXISTS predictions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
       match_id INTEGER,
-      skor_rumah INTEGER,
-      skor_tamu INTEGER,
-      UNIQUE(match_id, skor_rumah, skor_tamu)
+      home_score INTEGER,
+      away_score INTEGER
     )
   `);
-
 });
 
-// =====================
-// API GET MATCHES
-// =====================
 app.get('/matches', (req, res) => {
-  db.all('SELECT * FROM matches ORDER BY id DESC', (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+  db.all('SELECT * FROM matches', (err, rows) => {
     res.json(rows);
   });
 });
 
-// =====================
-// ADMIN: BUAT MATCH
-// =====================
-app.post('/admin/match', (req, res) => {
-  const { pertandingan } = req.body;
-
-  if (!pertandingan) {
-    return res.status(400).json({ error: 'Nama pertandingan wajib diisi' });
+app.post('/matches', (req, res) => {
+  const { home, away } = req.body;
+  if (!home || !away) {
+    return res.status(400).json({ message: 'Input pertandingan tidak ditemukan' });
   }
 
   db.run(
-    'INSERT INTO matches (pertandingan) VALUES (?)',
-    [pertandingan],
-    () => res.json({ success: true })
+    'INSERT INTO matches (home, away) VALUES (?, ?)',
+    [home, away],
+    () => res.json({ message: 'Match berhasil ditambahkan' })
   );
 });
 
-// =====================
-// ADMIN: TUTUP MATCH
-// =====================
-app.post('/admin/match/:id/close', (req, res) => {
-  db.run(
-    'UPDATE matches SET status = "CLOSED" WHERE id = ?',
-    [req.params.id],
-    () => res.json({ success: true })
-  );
-});
-
-// =====================
-// ADMIN: INPUT HASIL
-// =====================
-app.post('/admin/match/:id/result', (req, res) => {
-  const { skor_rumah_asli, skor_tamu_asli } = req.body;
-
-  if (skor_rumah_asli == skor_tamu_asli) {
-    return res.status(400).json({ error: 'Skor tidak boleh seri' });
-  }
-
-  db.run(
-    'UPDATE matches SET status = "FINISHED" WHERE id = ?',
-    [req.params.id],
-    () => res.json({ success: true })
-  );
-});
-
-// =====================
-// USER: KIRIM PREDIKSI
-// =====================
 app.post('/predict', (req, res) => {
-  const { match_id, skor_rumah, skor_tamu } = req.body;
+  const { name, matchId, homeScore, awayScore } = req.body;
 
-  if (skor_rumah == skor_tamu) {
-    return res.status(400).json({ error: 'Skor tidak boleh seri' });
+  if (!name || homeScore === awayScore) {
+    return res.status(400).json({ message: 'Nama wajib diisi dan skor tidak boleh sama' });
   }
 
-  db.run(
-    'INSERT INTO predictions (match_id, skor_rumah, skor_tamu) VALUES (?, ?, ?)',
-    [match_id, skor_rumah, skor_tamu],
-    (err) => {
-      if (err) {
-        return res.status(400).json({
-          error: 'Skor ini sudah dipilih orang lain'
-        });
+  db.get(
+    `SELECT * FROM predictions
+     WHERE match_id = ? AND home_score = ? AND away_score = ?`,
+    [matchId, homeScore, awayScore],
+    (err, existing) => {
+      if (existing) {
+        return res.status(400).json({ message: 'Skor ini sudah dipilih orang lain' });
       }
-      res.json({ success: true });
+
+      db.run(
+        `INSERT INTO predictions (name, match_id, home_score, away_score)
+         VALUES (?, ?, ?, ?)`,
+        [name, matchId, homeScore, awayScore],
+        () => res.json({ message: 'Prediksi berhasil disimpan' })
+      );
     }
   );
 });
 
-// =====================
-app.listen(3000, () => {
-  console.log('🔥 Server running di http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log('Server running on port ' + PORT);
 });

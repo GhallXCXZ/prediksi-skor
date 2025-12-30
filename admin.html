@@ -1,91 +1,69 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Panel - Prediksi Skor</title>
+  <meta charset="UTF-8">
+  <title>Admin Match</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
 
-  <div class="max-w-3xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6">⚙️ Admin Panel</h1>
+<button onclick="toggleTheme()" class="fixed top-4 right-4 p-3 rounded-full bg-white dark:bg-gray-800 shadow">
+  <span id="theme-icon">🌙</span>
+</button>
 
-    <!-- FORM TAMBAH MATCH -->
-    <div class="bg-white p-4 rounded shadow mb-6">
-      <h2 class="text-xl font-semibold mb-2">➕ Buat Pertandingan</h2>
+<div class="max-w-md mx-auto mt-20 bg-white dark:bg-gray-800 p-6 rounded shadow">
+  <h1 class="text-xl font-bold mb-4">Admin Match</h1>
 
-      <input
-        id="pertandinganInput"
-        class="border p-2 w-full mb-2"
-        placeholder="Inter Milan vs Barcelona"
-      />
+  <input id="home" placeholder="Tim Home" class="w-full p-2 mb-2 rounded bg-gray-50 dark:bg-gray-700">
+  <input id="away" placeholder="Tim Away" class="w-full p-2 mb-2 rounded bg-gray-50 dark:bg-gray-700">
 
-      <button
-        onclick="buatMatch()"
-        class="bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        Buat Match
-      </button>
-    </div>
-
-    <!-- LIST MATCH -->
-    <div class="bg-white p-4 rounded shadow">
-      <h2 class="text-xl font-semibold mb-4">📋 Daftar Pertandingan</h2>
-      <div id="matchList" class="space-y-4"></div>
-    </div>
-  </div>
+  <button onclick="buatMatch()" class="w-full bg-green-600 text-white p-2 rounded">
+    Tambah Match
+  </button>
+</div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+const API = 'https://prediksi-skor.onrender.com';
 
-  const API = 'https://prediksi-skor.onrender.com';
+async function buatMatch() {
+  const home = document.getElementById('home').value;
+  const away = document.getElementById('away').value;
 
-  async function loadMatches() {
-    const res = await fetch(API + '/matches');
-    const data = await res.json();
-    const list = document.getElementById('matchList');
-    list.innerHTML = '';
+  const res = await fetch(API + '/matches', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ home, away })
+  });
 
-    data.forEach(m => {
-      list.innerHTML += `
-        <div class="border p-3 rounded">
-          <p class="font-bold">${m.pertandingan}</p>
-          <p>Status: <b>${m.status}</b></p>
-        </div>
-      `;
-    });
+  const data = await res.json();
+  alert(data.message);
+}
+
+const html = document.documentElement;
+const icon = document.getElementById('theme-icon');
+
+function applyTheme(theme) {
+  if (theme === 'dark') {
+    html.classList.add('dark');
+    icon.textContent = '☀️';
+  } else {
+    html.classList.remove('dark');
+    icon.textContent = '🌙';
   }
+}
 
-  // JADIKAN GLOBAL
-  window.buatMatch = async function () {
-    const input = document.getElementById('pertandinganInput');
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme) {
+  applyTheme(savedTheme);
+} else {
+  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+}
 
-    if (!input) {
-      alert('Input pertandingan tidak ditemukan');
-      return;
-    }
-
-    const pertandingan = input.value.trim();
-    if (!pertandingan) {
-      alert('Isi nama pertandingan');
-      return;
-    }
-
-    await fetch(API + '/admin/match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pertandingan })
-    });
-
-    input.value = '';
-    loadMatches();
-  }
-
-  loadMatches();
-
-});
+function toggleTheme() {
+  const theme = html.classList.contains('dark') ? 'light' : 'dark';
+  localStorage.setItem('theme', theme);
+  applyTheme(theme);
+}
 </script>
-
 </body>
 </html>
