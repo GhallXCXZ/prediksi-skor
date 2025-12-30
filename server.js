@@ -8,8 +8,14 @@ app.use(express.json());
 
 const db = new sqlite3.Database('./prediksi.db');
 
-// ================= DATABASE =================
+// ================= ROOT (ANTI CANNOT GET)
+app.get('/', (req, res) => {
+  res.send('API Prediksi Skor AKTIF');
+});
+
+// ================= DATABASE
 db.serialize(() => {
+
   db.run(`
     CREATE TABLE IF NOT EXISTS matches (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,9 +35,10 @@ db.serialize(() => {
       UNIQUE(match_id, name)
     )
   `);
+
 });
 
-// ================= MATCH =================
+// ================= MATCH
 app.get('/matches', (req, res) => {
   db.all('SELECT * FROM matches ORDER BY id DESC', (e, rows) => {
     res.json(rows || []);
@@ -53,13 +60,13 @@ app.post('/admin/match', (req, res) => {
 
 app.post('/admin/match/:id/close', (req, res) => {
   db.run(
-    'UPDATE matches SET status = "CLOSED" WHERE id = ?',
+    'UPDATE matches SET status="CLOSED" WHERE id=?',
     [req.params.id],
     () => res.json({ message: 'Match ditutup' })
   );
 });
 
-// ================= PREDICTION =================
+// ================= PREDICTION
 app.post('/predict', (req, res) => {
   const { name, matchId, homeScore, awayScore } = req.body;
 
@@ -68,7 +75,7 @@ app.post('/predict', (req, res) => {
   }
 
   db.get(
-    'SELECT status FROM matches WHERE id = ?',
+    'SELECT status FROM matches WHERE id=?',
     [matchId],
     (e, m) => {
       if (!m || m.status === 'CLOSED') {
@@ -93,7 +100,16 @@ app.post('/predict', (req, res) => {
   );
 });
 
-// ================= ADMIN VIEW =================
+// ================= USER LIHAT SKOR TERAMBIL
+app.get('/scores/:id', (req, res) => {
+  db.all(
+    'SELECT name, home_score, away_score FROM predictions WHERE match_id=?',
+    [req.params.id],
+    (e, rows) => res.json(rows || [])
+  );
+});
+
+// ================= ADMIN VIEW
 app.get('/admin/predictions', (req, res) => {
   db.all(`
     SELECT p.name, m.pertandingan, p.home_score, p.away_score
@@ -112,14 +128,6 @@ app.get('/leaderboard', (req, res) => {
   `, (e, rows) => res.json(rows || []));
 });
 
-app.get('/scores/:id', (req, res) => {
-  db.all(
-    'SELECT name, home_score, away_score FROM predictions WHERE match_id = ?',
-    [req.params.id],
-    (e, rows) => res.json(rows || [])
-  );
-});
-
-// ================= START =================
+// ================= START
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server running on', PORT));
