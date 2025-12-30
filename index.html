@@ -5,65 +5,130 @@
   <title>Prediksi Skor</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
 
+<!-- Dark Mode Button -->
 <button onclick="toggleTheme()" class="fixed top-4 right-4 p-3 rounded-full bg-white dark:bg-gray-800 shadow">
   <span id="theme-icon">🌙</span>
 </button>
 
-<div class="max-w-xl mx-auto mt-20 bg-white dark:bg-gray-800 p-6 rounded shadow">
+<div class="max-w-xl mx-auto mt-24 bg-white dark:bg-gray-800 p-6 rounded shadow-lg">
   <h1 class="text-xl font-bold mb-4">Prediksi Skor</h1>
 
-  <input id="name" placeholder="Nama kamu" class="w-full p-2 mb-2 rounded bg-gray-50 dark:bg-gray-700">
+  <!-- Nama -->
+  <input
+    id="name"
+    placeholder="Nama kamu"
+    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
+  />
 
-  <select id="match" class="w-full p-2 mb-2 rounded bg-gray-50 dark:bg-gray-700"></select>
+  <!-- Match -->
+  <select
+    id="match"
+    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
+  >
+    <option value="">Pilih Pertandingan</option>
+  </select>
 
-  <div class="flex gap-2 mb-2">
-    <input id="homeScore" type="number" placeholder="Skor Home" class="w-1/2 p-2 rounded bg-gray-50 dark:bg-gray-700">
-    <input id="awayScore" type="number" placeholder="Skor Away" class="w-1/2 p-2 rounded bg-gray-50 dark:bg-gray-700">
+  <!-- Skor -->
+  <div class="flex gap-2 mb-4">
+    <input
+      id="homeScore"
+      type="number"
+      min="0"
+      placeholder="Skor Home"
+      class="w-1/2 p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
+    />
+    <input
+      id="awayScore"
+      type="number"
+      min="0"
+      placeholder="Skor Away"
+      class="w-1/2 p-2 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
+    />
   </div>
 
-  <button onclick="submitPrediction()" class="w-full bg-blue-600 text-white p-2 rounded">
+  <button
+    onclick="submitPrediction()"
+    class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition"
+  >
     Kirim Prediksi
   </button>
 </div>
 
 <script>
+/* ======================
+   CONFIG
+====================== */
 const API = 'https://prediksi-skor.onrender.com';
 
+/* ======================
+   LOAD MATCHES (FIX)
+====================== */
 async function loadMatches() {
-  const res = await fetch(API + '/matches');
-  const data = await res.json();
-  const select = document.getElementById('match');
-  data.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = `${m.home} vs ${m.away}`;
-    select.appendChild(opt);
-  });
+  try {
+    const res = await fetch(API + '/matches');
+    const data = await res.json();
+
+    const select = document.getElementById('match');
+    select.innerHTML = '<option value="">Pilih Pertandingan</option>';
+
+    data.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.pertandingan; // 🔥 FIX UTAMA
+      select.appendChild(opt);
+    });
+
+  } catch (err) {
+    alert('Gagal memuat pertandingan');
+  }
 }
 
+/* ======================
+   SUBMIT PREDIKSI
+====================== */
 async function submitPrediction() {
-  const name = document.getElementById('name').value;
+  const name = document.getElementById('name').value.trim();
   const matchId = document.getElementById('match').value;
   const homeScore = document.getElementById('homeScore').value;
   const awayScore = document.getElementById('awayScore').value;
 
-  const res = await fetch(API + '/predict', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name,
-      matchId,
-      homeScore: Number(homeScore),
-      awayScore: Number(awayScore)
-    })
-  });
+  if (!name || !matchId) {
+    alert('Nama dan pertandingan wajib diisi');
+    return;
+  }
 
-  const data = await res.json();
-  alert(data.message);
+  try {
+    const res = await fetch(API + '/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        matchId,
+        homeScore: Number(homeScore),
+        awayScore: Number(awayScore)
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || 'Prediksi gagal');
+      return;
+    }
+
+    alert(data.message);
+
+  } catch (err) {
+    alert('Tidak bisa terhubung ke server');
+  }
 }
 
+/* ======================
+   DARK MODE ADVANCED
+====================== */
 const html = document.documentElement;
 const icon = document.getElementById('theme-icon');
 
@@ -81,7 +146,9 @@ const savedTheme = localStorage.getItem('theme');
 if (savedTheme) {
   applyTheme(savedTheme);
 } else {
-  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  applyTheme(
+    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  );
 }
 
 function toggleTheme() {
@@ -90,7 +157,9 @@ function toggleTheme() {
   applyTheme(theme);
 }
 
+/* ====================== */
 loadMatches();
 </script>
+
 </body>
 </html>
