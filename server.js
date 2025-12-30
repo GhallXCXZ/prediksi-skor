@@ -10,7 +10,7 @@ app.use(express.static(__dirname));
 const db = new sqlite3.Database('./prediksi.db');
 
 // =======================
-// DATABASE SETUP
+// DATABASE
 // =======================
 db.serialize(() => {
 
@@ -29,7 +29,8 @@ db.serialize(() => {
       match_id INTEGER,
       home_score INTEGER,
       away_score INTEGER,
-      UNIQUE(match_id, home_score, away_score)
+      UNIQUE(match_id, home_score, away_score),
+      UNIQUE(match_id, name)
     )
   `);
 
@@ -42,6 +43,17 @@ app.get('/matches', (req, res) => {
   db.all('SELECT * FROM matches ORDER BY id DESC', (err, rows) => {
     res.json(rows);
   });
+});
+
+// =======================
+// ADMIN: CLOSE MATCH
+// =======================
+app.post('/admin/match/:id/close', (req, res) => {
+  db.run(
+    'UPDATE matches SET status = "CLOSED" WHERE id = ?',
+    [req.params.id],
+    () => res.json({ message: 'Match berhasil ditutup' })
+  );
 });
 
 // =======================
@@ -67,23 +79,40 @@ app.post('/admin/match', (req, res) => {
 app.post('/predict', (req, res) => {
   const { name, matchId, homeScore, awayScore } = req.body;
 
-  if (!name || homeScore === awayScore) {
-    return res
-      .status(400)
-      .json({ message: 'Nama wajib & skor tidak boleh sama' });
-  }
-
-  db.run(
-    `INSERT INTO predictions (name, match_id, home_score, away_score)
-     VALUES (?, ?, ?, ?)`,
-    [name, matchId, homeScore, awayScore],
-    (err) => {
-      if (err) {
+  db.get(
+    'SELECT status FROM matches WHERE id = ?',
+    [matchId],
+    (err, match) => {
+      if (match.status === 'CLOSED') {
         return res
           .status(400)
-          .json({ message: 'Skor ini sudah dipilih orang lain' });
+          .json({ message: 'Match sudah ditutup oleh admin' });
       }
-      res.json({ message: 'Prediksi tersimpan' });
+
+      if (!name || homeScore === awayScore) {
+        return res
+          .status(400)
+          .json({ message: 'Nama wajib & skor tidak boleh seri' });
+      }
+
+      db.run(
+        `INSERT INTO predictions (name, match_id, home_score, away_score)
+         VALUES (?, ?, ?, ?)`,
+        [name, matchId, homeScore, awayScore],
+        (err) => {
+          if (err) {
+            if (err.message.includes('match_id, name')) {
+              return res
+                .status(400)
+                .json({ message: 'Nama sudah mengisi prediksi' });
+            }
+            return res
+              .status(400)
+              .json({ message: 'Skor ini sudah dipilih orang lain' });
+          }
+          res.json({ message: 'Prediksi berhasil disimpan' });
+        }
+      );
     }
   );
 });
@@ -111,7 +140,7 @@ app.get('/admin/predictions', (req, res) => {
 // =======================
 app.get('/leaderboard', (req, res) => {
   db.all(`
-    SELECT name, COUNT(*) AS total
+    SELECT name, COUNT(*) as total
     FROM predictions
     GROUP BY name
     ORDER BY total DESC

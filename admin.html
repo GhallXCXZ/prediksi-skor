@@ -2,14 +2,14 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Realtime Panel</title>
+  <title>Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
 <div class="max-w-6xl mx-auto mt-10 bg-white dark:bg-gray-800 p-6 rounded shadow">
-  <h1 class="text-2xl font-bold mb-4">📊 Admin Realtime Panel</h1>
+  <h1 class="text-2xl font-bold mb-4">⚙️ Admin Panel</h1>
 
   <!-- Tambah Match -->
   <div class="mb-6">
@@ -21,8 +21,12 @@
     </button>
   </div>
 
-  <!-- Tabel Prediksi -->
-  <h2 class="font-semibold mb-2">👀 Semua Prediksi (Realtime)</h2>
+  <!-- List Match -->
+  <h2 class="font-semibold mb-2">🎯 Daftar Match</h2>
+  <ul id="matchList" class="mb-6"></ul>
+
+  <!-- Prediksi -->
+  <h2 class="font-semibold mb-2">👀 Semua Prediksi</h2>
   <table class="w-full border mb-6">
     <thead class="bg-gray-200">
       <tr>
@@ -35,7 +39,7 @@
   </table>
 
   <!-- Leaderboard -->
-  <h2 class="font-semibold mb-2">🏆 Leaderboard (Realtime)</h2>
+  <h2 class="font-semibold mb-2">🏆 Leaderboard</h2>
   <ol id="leaderboard" class="list-decimal ml-6"></ol>
 </div>
 
@@ -56,6 +60,37 @@ async function buatMatch() {
   const data = await res.json();
   alert(data.message);
   document.getElementById('pertandingan').value = '';
+  loadAll();
+}
+
+// Load Match List
+async function loadMatches() {
+  const res = await fetch(API + '/matches');
+  const data = await res.json();
+  const ul = document.getElementById('matchList');
+  ul.innerHTML = '';
+
+  data.forEach(m => {
+    ul.innerHTML += `
+      <li class="mb-1">
+        ${m.pertandingan} 
+        <span class="text-sm text-gray-500">(${m.status})</span>
+        ${m.status === 'OPEN'
+          ? `<button onclick="closeMatch(${m.id})" class="text-red-600 ml-2">[Tutup]</button>`
+          : ''}
+      </li>
+    `;
+  });
+}
+
+// Close Match
+async function closeMatch(id) {
+  const res = await fetch(API + '/admin/match/' + id + '/close', {
+    method: 'POST'
+  });
+  const data = await res.json();
+  alert(data.message);
+  loadAll();
 }
 
 // Load Prediksi
@@ -76,27 +111,25 @@ async function loadPredictions() {
   });
 }
 
-// Load Leaderboard
+// Leaderboard
 async function loadLeaderboard() {
   const res = await fetch(API + '/leaderboard');
   const data = await res.json();
   const ol = document.getElementById('leaderboard');
   ol.innerHTML = '';
-
-  data.forEach(l => {
+  data.forEach((l, i) => {
     ol.innerHTML += `<li>${l.name} (${l.total} prediksi)</li>`;
   });
 }
 
-// AUTO REFRESH REALTIME
-function refreshRealtime() {
+function loadAll() {
+  loadMatches();
   loadPredictions();
   loadLeaderboard();
 }
 
-// Refresh tiap 3 detik
-setInterval(refreshRealtime, 3000);
-refreshRealtime();
+setInterval(loadAll, 3000);
+loadAll();
 </script>
 
 </body>
