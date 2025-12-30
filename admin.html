@@ -6,51 +6,73 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
 
 <button onclick="toggleTheme()" class="fixed top-4 right-4 p-3 rounded-full bg-white dark:bg-gray-800 shadow">
   <span id="theme-icon">🌙</span>
 </button>
 
-<div class="max-w-md mx-auto mt-20 bg-white dark:bg-gray-800 p-6 rounded shadow">
+<div class="max-w-md mx-auto mt-24 bg-white dark:bg-gray-800 p-6 rounded shadow-lg">
   <h1 class="text-xl font-bold mb-4">Admin - Tambah Match</h1>
 
   <input
     id="pertandingan"
-    placeholder="Contoh: Inter Milan vs Man City"
-    class="w-full p-2 mb-3 rounded bg-gray-50 dark:bg-gray-700"
+    type="text"
+    placeholder="Inter Milan vs Man City"
+    class="w-full p-2 mb-4 rounded bg-gray-50 dark:bg-gray-700 dark:text-white border dark:border-gray-600"
   />
 
   <button
     onclick="buatMatch()"
-    class="w-full bg-green-600 text-white p-2 rounded"
+    class="w-full bg-green-600 hover:bg-green-700 text-white p-2 rounded transition"
   >
     Tambah Match
   </button>
 </div>
 
 <script>
+/* ======================
+   CONFIG
+====================== */
 const API = 'https://prediksi-skor.onrender.com';
 
-async function buatMatch() {
-  const pertandingan = document.getElementById('pertandingan').value;
+/* ======================
+   BUAT MATCH (GLOBAL)
+====================== */
+window.buatMatch = async function () {
+  const input = document.getElementById('pertandingan');
+  const pertandingan = input.value.trim();
 
   if (!pertandingan) {
     alert('Nama pertandingan wajib diisi');
     return;
   }
 
-  const res = await fetch(API + '/admin/match', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pertandingan })
-  });
+  try {
+    const res = await fetch(API + '/admin/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pertandingan })
+    });
 
-  const data = await res.json();
-  alert('Match berhasil ditambahkan');
-}
+    const data = await res.json();
 
-/* DARK MODE */
+    if (!res.ok) {
+      alert(data.error || 'Gagal tambah match');
+      return;
+    }
+
+    alert('Match berhasil ditambahkan');
+    input.value = '';
+
+  } catch (err) {
+    alert('Tidak bisa terhubung ke server');
+  }
+};
+
+/* ======================
+   DARK MODE
+====================== */
 const html = document.documentElement;
 const icon = document.getElementById('theme-icon');
 
