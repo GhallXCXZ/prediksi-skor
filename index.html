@@ -1,83 +1,37 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Prediksi Skor</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Admin</title>
 </head>
+<body>
+<h2>Tambah Match</h2>
+<input id="m">
+<button onclick="add()">Tambah</button>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-
-<div class="max-w-xl mx-auto mt-16 bg-white dark:bg-gray-800 p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-4">Prediksi Skor</h1>
-
-  <input id="name" placeholder="Nama kamu"
-    class="w-full p-2 mb-2 border rounded">
-
-  <select id="match" onchange="loadScores()"
-    class="w-full p-2 mb-2 border rounded"></select>
-
-  <div id="taken" class="text-sm mb-3"></div>
-
-  <div class="flex gap-2 mb-3">
-    <input id="homeScore" type="number" placeholder="Skor Home"
-      class="w-1/2 p-2 border rounded">
-    <input id="awayScore" type="number" placeholder="Skor Away"
-      class="w-1/2 p-2 border rounded">
-  </div>
-
-  <button onclick="submitPrediction()"
-    class="w-full bg-blue-600 text-white p-2 rounded">
-    Kirim Prediksi
-  </button>
-</div>
+<ul id="list"></ul>
 
 <script>
 const API = 'https://prediksi-skor.onrender.com';
 
-async function loadMatches() {
-  const res = await fetch(API + '/matches');
-  const data = await res.json();
-  const select = document.getElementById('match');
-  select.innerHTML = '';
-  data.forEach(m => {
-    select.innerHTML += `<option value="${m.id}">${m.pertandingan}</option>`;
+async function add(){
+  await fetch(API+'/admin/match',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ pertandingan: m.value })
   });
-  loadScores();
+  m.value='';
+  load();
 }
 
-async function loadScores() {
-  const matchId = document.getElementById('match').value;
-  const res = await fetch(API + '/scores/' + matchId);
-  const data = await res.json();
-  const box = document.getElementById('taken');
-  box.innerHTML = '<b>Skor sudah diambil:</b><br>' +
-    (data.length
-      ? data.map(d => `• ${d.name} : ${d.home_score} - ${d.away_score}`).join('<br>')
-      : 'Belum ada');
-}
-
-async function submitPrediction() {
-  const payload = {
-    name: document.getElementById('name').value,
-    matchId: document.getElementById('match').value,
-    homeScore: Number(document.getElementById('homeScore').value),
-    awayScore: Number(document.getElementById('awayScore').value)
-  };
-
-  const res = await fetch(API + '/predict', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+async function load(){
+  const r = await fetch(API+'/matches');
+  const d = await r.json();
+  list.innerHTML='';
+  d.forEach(x=>{
+    list.innerHTML+=`<li>${x.pertandingan}</li>`;
   });
-
-  const data = await res.json();
-  alert(data.message);
-  loadScores();
 }
-
-loadMatches();
+load();
 </script>
-
 </body>
 </html>
