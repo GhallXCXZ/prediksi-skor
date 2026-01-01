@@ -1,37 +1,37 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Admin</title>
-</head>
-<body>
-<h2>Tambah Match</h2>
-<input id="m">
-<button onclick="add()">Tambah</button>
+<h2>TEBAK SKOR PS3</h2>
 
-<ul id="list"></ul>
+<input id="n" placeholder="nama"><br>
+<input id="a" type="number"> VS
+<input id="b" type="number"><br>
+<button onclick="kirim()">KIRIM</button>
+
+<h3>LIST TEBAKAN</h3>
+<ul id="l"></ul>
 
 <script>
-const API = 'https://prediksi-skor.onrender.com';
+const API="http://localhost:3000"
 
-async function add(){
-  await fetch(API+'/admin/match',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ pertandingan: m.value })
-  });
-  m.value='';
-  load();
-}
-
-async function load(){
-  const r = await fetch(API+'/matches');
-  const d = await r.json();
-  list.innerHTML='';
+function load(){
+ fetch(API+"/list").then(r=>r.json()).then(d=>{
+  l.innerHTML=""
   d.forEach(x=>{
-    list.innerHTML+=`<li>${x.pertandingan}</li>`;
-  });
+   l.innerHTML+=`<li>${x.name} : ${x.a}-${x.b}</li>`
+  })
+ })
 }
-load();
+setInterval(load,1500)
+
+function kirim(){
+ fetch(API+"/predict",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    name:n.value,
+    a:+a.value,
+    b:+b.value
+  })
+ }).then(r=>r.json()).then(alert)
+}
+load()
 </script>
-</body>
-</html>
